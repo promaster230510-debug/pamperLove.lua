@@ -1,0 +1,254 @@
+-- pamperLove Aim Lock GUI
+-- GitHub loadstring ready
+-- Educational / UI showcase
+
+-- SERVICES
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- =======================
+-- AIM LOCK SETTINGS
+-- =======================
+local AIM_KEY = Enum.KeyCode.R
+local aimEnabled = false
+local targetPlayer = nil
+
+-- =======================
+-- BLUR (GLASS EFFECT)
+-- =======================
+local Blur = Instance.new("BlurEffect")
+Blur.Size = 6
+Blur.Parent = Lighting
+
+-- =======================
+-- GUI SETUP
+-- =======================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "pamperLoveGUI"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 320, 0, 160)
+MainFrame.Position = UDim2.new(0, 60, 0, 60)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 18)
+
+-- RGB BORDER GLOW
+local BorderStroke = Instance.new("UIStroke")
+BorderStroke.Thickness = 4
+BorderStroke.Parent = MainFrame
+
+-- =======================
+-- GLASS INNER PANEL
+-- =======================
+local Glass = Instance.new("Frame")
+Glass.Size = UDim2.new(1, -18, 1, -18)
+Glass.Position = UDim2.new(0, 9, 0, 9)
+Glass.BackgroundTransparency = 0.1
+Glass.Parent = MainFrame
+Instance.new("UICorner", Glass).CornerRadius = UDim.new(0, 14)
+
+local GlassGradient = Instance.new("UIGradient")
+GlassGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(180,220,255)),
+	ColorSequenceKeypoint.new(0.3, Color3.fromRGB(255,190,220)),
+	ColorSequenceKeypoint.new(0.6, Color3.fromRGB(255,255,255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255,170,130))
+}
+GlassGradient.Parent = Glass
+
+local GlassGlow = Instance.new("UIStroke")
+GlassGlow.Thickness = 3
+GlassGlow.Transparency = 0.2
+GlassGlow.Color = Color3.fromRGB(255,255,255)
+GlassGlow.Parent = Glass
+
+-- =======================
+-- TITLE
+-- =======================
+local Title = Instance.new("TextLabel")
+Title.Text = "pamperLove"
+Title.Size = UDim2.new(1, -50, 0, 40)
+Title.Position = UDim2.new(0, 16, 0, 6)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 26
+Title.TextColor3 = Color3.new(1,1,1)
+Title.Parent = MainFrame
+
+-- =======================
+-- STATUS BUTTON
+-- =======================
+local StatusButton = Instance.new("TextButton")
+StatusButton.Size = UDim2.new(1, -40, 0, 34)
+StatusButton.Position = UDim2.new(0, 20, 0, 90)
+StatusButton.Text = "OFF"
+StatusButton.Font = Enum.Font.GothamMedium
+StatusButton.TextSize = 18
+StatusButton.Parent = MainFrame
+
+Instance.new("UICorner", StatusButton).CornerRadius = UDim.new(0, 12)
+
+local StatusGradient = Instance.new("UIGradient")
+StatusGradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(200,240,255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255))
+}
+StatusGradient.Parent = StatusButton
+
+-- =======================
+-- PRANK CLOSE (TOP RIGHT)
+-- =======================
+local PrankClose = Instance.new("TextButton")
+PrankClose.Size = UDim2.new(0, 34, 0, 34)
+PrankClose.Position = UDim2.new(1, -42, 0, 6)
+PrankClose.Text = "✖"
+PrankClose.Font = Enum.Font.GothamBold
+PrankClose.TextSize = 20
+PrankClose.TextColor3 = Color3.fromRGB(255,90,90)
+PrankClose.Parent = MainFrame
+Instance.new("UICorner", PrankClose).CornerRadius = UDim.new(0, 10)
+
+-- =======================
+-- KILL SWITCH (BOTTOM LEFT)
+-- =======================
+local KillSwitch = Instance.new("TextButton")
+KillSwitch.Size = UDim2.new(0, 36, 0, 36)
+KillSwitch.Position = UDim2.new(0, 10, 1, -46)
+KillSwitch.Text = "✖"
+KillSwitch.Font = Enum.Font.GothamBlack
+KillSwitch.TextSize = 20
+KillSwitch.BackgroundColor3 = Color3.fromRGB(200,60,60)
+KillSwitch.TextColor3 = Color3.new(1,1,1)
+KillSwitch.Visible = false
+KillSwitch.Parent = MainFrame
+Instance.new("UICorner", KillSwitch).CornerRadius = UDim.new(0, 12)
+
+-- =======================
+-- PRANK TEXT
+-- =======================
+local PrankText = Instance.new("TextLabel")
+PrankText.Size = UDim2.new(1,0,1,0)
+PrankText.BackgroundTransparency = 1
+PrankText.Text = "nyashix prime"
+PrankText.Font = Enum.Font.GothamBlack
+PrankText.TextSize = 80
+PrankText.TextTransparency = 1
+PrankText.Parent = ScreenGui
+
+-- =======================
+-- AIM FUNCTIONS
+-- =======================
+local function getRoot(character)
+	return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+local function getClosestPlayer()
+	if not LocalPlayer.Character then return nil end
+	local myRoot = getRoot(LocalPlayer.Character)
+	if not myRoot then return nil end
+
+	local closest, dist = nil, math.huge
+	for _,plr in pairs(Players:GetPlayers()) do
+		if plr ~= LocalPlayer and plr.Character then
+			local root = getRoot(plr.Character)
+			if root then
+				local d = (myRoot.Position - root.Position).Magnitude
+				if d < dist then
+					dist = d
+					closest = plr
+				end
+			end
+		end
+	end
+	return closest
+end
+
+-- =======================
+-- CAMERA SHAKE
+-- =======================
+local shaking = false
+local shakeConnection
+
+local function startShake()
+	if shaking then return end
+	shaking = true
+	shakeConnection = RunService.RenderStepped:Connect(function()
+		Camera.CFrame = Camera.CFrame * CFrame.new(
+			math.random(-6,6)/40,
+			math.random(-6,6)/40,
+			0
+		)
+	end)
+end
+
+local function stopShake()
+	shaking = false
+	if shakeConnection then
+		shakeConnection:Disconnect()
+	end
+end
+
+-- =======================
+-- INTERACTIONS
+-- =======================
+StatusButton.MouseButton1Click:Connect(function()
+	aimEnabled = not aimEnabled
+	if aimEnabled then
+		targetPlayer = getClosestPlayer()
+		StatusButton.Text = "ON"
+	else
+		targetPlayer = nil
+		StatusButton.Text = "OFF"
+	end
+end)
+
+UserInputService.InputBegan:Connect(function(input,gp)
+	if not gp and input.KeyCode == AIM_KEY then
+		StatusButton:MouseButton1Click()
+	end
+end)
+
+PrankClose.MouseButton1Click:Connect(function()
+	startShake()
+	KillSwitch.Visible = true
+	TweenService:Create(
+		PrankText,
+		TweenInfo.new(0.4),
+		{TextTransparency = 0}
+	):Play()
+end)
+
+KillSwitch.MouseButton1Click:Connect(function()
+	stopShake()
+	aimEnabled = false
+	targetPlayer = nil
+	Blur:Destroy()
+	ScreenGui:Destroy()
+end)
+
+-- =======================
+-- RENDER LOOP
+-- =======================
+RunService.RenderStepped:Connect(function(dt)
+	BorderStroke.Color = Color3.fromHSV(tick()%1,1,1)
+	GlassGradient.Rotation += dt * 30
+	Title.TextColor3 = Color3.fromHSV(tick()%1,1,1)
+
+	if aimEnabled and targetPlayer and targetPlayer.Character then
+		local root = getRoot(targetPlayer.Character)
+		if root then
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, root.Position)
+		end
+	end
+end)
