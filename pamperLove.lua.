@@ -1,5 +1,5 @@
--- Aim Lock Script for Roblox
--- Final GUI Version with Rainbow Text, Glass Glow, Status Transition, Prank & Kill
+-- PamperLove GUI v2
+-- Aim Lock + Rainbow Glass + Prank + Reopen with Ins
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -11,24 +11,27 @@ local TweenService = game:GetService("TweenService")
 
 -- ================= SETTINGS =================
 local AimLockKey = Enum.KeyCode.R
+local ReopenKey = Enum.KeyCode.Insert
 local aimLockEnabled = false
 local targetPlayer = nil
 local shaking = false
 local shakeConnection = nil
+local guiVisible = true
+local aimTween = nil
 
 -- ================= BLUR =================
 local Blur = Instance.new("BlurEffect")
-Blur.Size = 4
+Blur.Size = 2 -- мягкий blur
 Blur.Parent = Lighting
 
--- ================= GUI =================
+-- ================= GUI CREATION =================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AimLockGUI"
+ScreenGui.Name = "PamperLoveGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 250, 0, 110) -- увеличен размер
+MainFrame.Size = UDim2.new(0, 280, 0, 120)
 MainFrame.Position = UDim2.new(0, 40, 0, 40)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 MainFrame.BorderSizePixel = 0
@@ -36,72 +39,72 @@ MainFrame.Active = true
 MainFrame.Draggable = true
 MainFrame.ZIndex = 2
 MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,16)
 
--- ================= RGB BORDER =================
+-- Border Glow
 local BorderGlow = Instance.new("UIStroke")
 BorderGlow.Parent = MainFrame
 BorderGlow.Thickness = 4
-BorderGlow.Transparency = 0.1
+BorderGlow.Transparency = 0
+BorderGlow.Color = Color3.fromHSV(0,1,1)
 
--- ================= GLASS LAYER =================
+-- Glass Layer
 local GlassLayer = Instance.new("Frame")
 GlassLayer.Size = UDim2.new(1, -16, 1, -16)
 GlassLayer.Position = UDim2.new(0, 8, 0, 8)
 GlassLayer.BackgroundTransparency = 0.05
 GlassLayer.ZIndex = 1
 GlassLayer.Parent = MainFrame
-Instance.new("UICorner", GlassLayer).CornerRadius = UDim.new(0, 14)
+Instance.new("UICorner", GlassLayer).CornerRadius = UDim.new(0,14)
 
 local GlassGradient = Instance.new("UIGradient")
 GlassGradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0.00, Color3.fromRGB(170,220,255)),
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(170,220,255)),
 	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255,180,200)),
-	ColorSequenceKeypoint.new(0.50, Color3.fromRGB(255,245,245)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,245,245)),
 	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255,200,150)),
-	ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255,150,180))
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255,150,180))
 }
 GlassGradient.Rotation = 0
 GlassGradient.Parent = GlassLayer
 
+-- Glow for glass
 local GlassGlow = Instance.new("UIStroke")
 GlassGlow.Parent = GlassLayer
 GlassGlow.Color = Color3.fromRGB(255,255,255)
 GlassGlow.Thickness = 3
 GlassGlow.Transparency = 0.2
 
--- ================= TITLE =================
+-- Title
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -40, 0, 35)
 Title.Position = UDim2.new(0, 10, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "pamperLove"
 Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 24
-Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextSize = 26
 Title.ZIndex = 3
 Title.Parent = MainFrame
 
--- Rainbow animation for letters
-RunService.RenderStepped:Connect(function(dt)
+-- Rainbow text animation
+RunService.RenderStepped:Connect(function()
 	local t = tick()*2
 	Title.TextColor3 = Color3.fromHSV((t%1),1,1)
 end)
 
--- ================= STATUS =================
+-- Status Button
 local Status = Instance.new("TextButton")
 Status.Size = UDim2.new(1, -28, 0, 30)
-Status.Position = UDim2.new(0, 14, 0, 60)
+Status.Position = UDim2.new(0,14,0,70)
 Status.BackgroundColor3 = Color3.fromRGB(65,65,65)
 Status.Text = "OFF"
 Status.Font = Enum.Font.GothamMedium
 Status.TextSize = 16
-Status.TextColor3 = Color3.fromRGB(180,240,255) -- голубой цвет
+Status.TextColor3 = Color3.fromRGB(180,240,255)
 Status.ZIndex = 3
 Status.Parent = MainFrame
-Instance.new("UICorner", Status).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", Status).CornerRadius = UDim.new(0,10)
 
--- Status gradient left-to-right animation
 local StatusGradient = Instance.new("UIGradient")
 StatusGradient.Color = ColorSequence.new{
 	ColorSequenceKeypoint.new(0, Color3.fromRGB(180,240,255)),
@@ -110,11 +113,11 @@ StatusGradient.Color = ColorSequence.new{
 StatusGradient.Rotation = 0
 StatusGradient.Parent = Status
 
--- ================= PRANK TOP CROSS =================
+-- Prank Top Close Button
 local Close = Instance.new("TextButton")
 Close.Size = UDim2.new(0,30,0,30)
 Close.Position = UDim2.new(1,-38,0,5)
-Close.Text = "🞩" -- новый символ крестика
+Close.Text = "🞩"
 Close.Font = Enum.Font.GothamBold
 Close.TextSize = 22
 Close.TextColor3 = Color3.fromRGB(255,90,90)
@@ -124,7 +127,7 @@ Close.ZIndex = 50
 Close.Parent = MainFrame
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0,8)
 
--- ================= KILL BUTTON LEFT BOTTOM =================
+-- Kill Button Bottom Left
 local Kill = Instance.new("TextButton")
 Kill.Size = UDim2.new(0,32,0,32)
 Kill.Position = UDim2.new(0,10,1,-42)
@@ -138,7 +141,7 @@ Kill.Visible = false
 Kill.Parent = MainFrame
 Instance.new("UICorner", Kill).CornerRadius = UDim.new(0,10)
 
--- ================= PRANK TEXT =================
+-- Prank Text
 local prankText = Instance.new("TextLabel")
 prankText.Size = UDim2.new(1,0,1,0)
 prankText.BackgroundTransparency = 1
@@ -179,15 +182,13 @@ local function aimAtTarget(t)
 	end
 end
 
--- ================= AIM TOGGLE =================
-local aimTween = nil
+-- Toggle Aim Lock
 local function toggleAim()
 	aimLockEnabled = not aimLockEnabled
 	if aimTween then aimTween:Cancel() end
 	if aimLockEnabled then
 		targetPlayer = getClosestTarget()
 		Status.Text = "ON"
-		-- Status gradient rotation for smooth left-to-right effect
 		aimTween = TweenService:Create(StatusGradient, TweenInfo.new(1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Rotation=360})
 		aimTween:Play()
 	else
@@ -197,8 +198,13 @@ local function toggleAim()
 	end
 end
 
-UserInputService.InputBegan:Connect(function(i,g)
-	if i.KeyCode == AimLockKey and not g then toggleAim() end
+UserInputService.InputBegan:Connect(function(input,g)
+	if input.KeyCode == AimLockKey and not g then toggleAim() end
+	if input.KeyCode == ReopenKey and not guiVisible then
+		ScreenGui.Enabled = true
+		guiVisible = true
+		Blur.Enabled = true
+	end
 end)
 Status.MouseButton1Click:Connect(toggleAim)
 
@@ -235,8 +241,9 @@ Kill.MouseButton1Click:Connect(function()
 	aimLockEnabled = false
 	targetPlayer = nil
 	if aimTween then aimTween:Cancel() end
-	Blur:Destroy()
-	ScreenGui:Destroy()
+	ScreenGui.Enabled = false
+	guiVisible = false
+	Blur.Enabled = false
 end)
 
 -- ================= ANIMATION LOOP =================
