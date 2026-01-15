@@ -1,257 +1,225 @@
--- PamperLove GUI v3: Full Rainbow + Live Gradient + Prank + AimLock + Reopen
+-- pamperLove | FINAL PREMIUM GUI
 
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
+local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
+local LP = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- ================= SETTINGS =================
-local AimLockKey = Enum.KeyCode.R
-local ReopenKey = Enum.KeyCode.Insert
-local aimLockEnabled = false
-local targetPlayer = nil
-local shaking = false
+-- ===== STATE =====
+local GUI_ENABLED = false
+local AIM_ENABLED = false
+local target = nil
 local shakeConnection = nil
-local guiVisible = true
-local aimTween = nil
+local shaking = false
 
--- ================= BLUR =================
-local Blur = Instance.new("BlurEffect")
-Blur.Size = 2
-Blur.Parent = Lighting
-
--- ================= GUI =================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "PamperLoveGUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 300, 0, 130)
-MainFrame.Position = UDim2.new(0, 40, 0, 40)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.ZIndex = 2
-MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,16)
-
--- Border Glow
-local BorderGlow = Instance.new("UIStroke")
-BorderGlow.Parent = MainFrame
-BorderGlow.Thickness = 4
-BorderGlow.Transparency = 0
-BorderGlow.Color = Color3.fromHSV(0,1,1)
-
--- Glass Layer
-local GlassLayer = Instance.new("Frame")
-GlassLayer.Size = UDim2.new(1, -16, 1, -16)
-GlassLayer.Position = UDim2.new(0, 8, 0, 8)
-GlassLayer.BackgroundTransparency = 0.05
-GlassLayer.ZIndex = 1
-GlassLayer.Parent = MainFrame
-Instance.new("UICorner", GlassLayer).CornerRadius = UDim.new(0,14)
-
-local GlassGradient = Instance.new("UIGradient")
-GlassGradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(255,0,255)),
-	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(0,255,255)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0,255,0)),
-	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(255,255,0)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(255,0,0))
-}
-GlassGradient.Rotation = 0
-GlassGradient.Parent = GlassLayer
-
--- Glow for glass
-local GlassGlow = Instance.new("UIStroke")
-GlassGlow.Parent = GlassLayer
-GlassGlow.Color = Color3.fromRGB(255,255,255)
-GlassGlow.Thickness = 4
-GlassGlow.Transparency = 0.15
-
--- Title
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -40, 0, 40)
-Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "pamperLove"
-Title.Font = Enum.Font.GothamBlack
-Title.TextSize = 28
-Title.ZIndex = 3
-Title.Parent = MainFrame
-
--- Status Button
-local Status = Instance.new("TextButton")
-Status.Size = UDim2.new(1, -28, 0, 32)
-Status.Position = UDim2.new(0,14,0,80)
-Status.BackgroundColor3 = Color3.fromRGB(50,50,50)
-Status.Text = "OFF"
-Status.Font = Enum.Font.GothamMedium
-Status.TextSize = 18
-Status.TextColor3 = Color3.fromRGB(180,240,255)
-Status.ZIndex = 3
-Status.Parent = MainFrame
-Instance.new("UICorner", Status).CornerRadius = UDim.new(0,12)
-
--- Status Gradient
-local StatusGradient = Instance.new("UIGradient")
-StatusGradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(180,240,255)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255))
-}
-StatusGradient.Rotation = 0
-StatusGradient.Parent = Status
-
--- Top Close Button (Prank)
-local Close = Instance.new("TextButton")
-Close.Size = UDim2.new(0,30,0,30)
-Close.Position = UDim2.new(1,-38,0,5)
-Close.Text = "🞩"
-Close.Font = Enum.Font.GothamBold
-Close.TextSize = 22
-Close.TextColor3 = Color3.fromRGB(255,90,90)
-Close.BackgroundColor3 = Color3.fromRGB(50,50,50)
-Close.BackgroundTransparency = 0.05
-Close.ZIndex = 50
-Close.Parent = MainFrame
-Instance.new("UICorner", Close).CornerRadius = UDim.new(0,8)
-
--- Kill Button Left Bottom
-local Kill = Instance.new("TextButton")
-Kill.Size = UDim2.new(0,32,0,32)
-Kill.Position = UDim2.new(0,10,1,-42)
-Kill.Text = "🞩"
-Kill.Font = Enum.Font.GothamBlack
-Kill.TextSize = 20
-Kill.TextColor3 = Color3.fromRGB(255,255,255)
-Kill.BackgroundColor3 = Color3.fromRGB(200,60,60)
-Kill.ZIndex = 50
-Kill.Visible = false
-Kill.Parent = MainFrame
-Instance.new("UICorner", Kill).CornerRadius = UDim.new(0,10)
-
--- Prank Text
-local prankText = Instance.new("TextLabel")
-prankText.Size = UDim2.new(1,0,1,0)
-prankText.BackgroundTransparency = 1
-prankText.Text = "nyashix prime"
-prankText.Font = Enum.Font.GothamBlack
-prankText.TextSize = 80
-prankText.TextColor3 = Color3.fromRGB(255,90,140)
-prankText.TextTransparency = 1
-prankText.ZIndex = 10
-prankText.Parent = ScreenGui
-
--- ================= AIM FUNCTIONS =================
-local function getMiddlePart(c)
-	return c:FindFirstChild("HumanoidRootPart")
-end
-
-local function getClosestTarget()
-	if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return nil end
+-- ===== AIM FUNCTIONS =====
+local function getClosest()
+	if not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then return nil end
 	local best, dist = nil, math.huge
 	for _,p in pairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character then
-			local m = getMiddlePart(p.Character)
-			if m then
-				local d = (LocalPlayer.Character.HumanoidRootPart.Position - m.Position).Magnitude
-				if d < dist then dist, best = d,p end
-			end
+		if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local d = (LP.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+			if d < dist then dist, best = d,p end
 		end
 	end
 	return best
 end
 
-local function aimAtTarget(t)
-	if t and t.Character then
-		local m = getMiddlePart(t.Character)
-		if m then
-			Camera.CFrame = CFrame.new(Camera.CFrame.Position, m.Position)
-		end
+local function aimAt(t)
+	if t and t.Character and t.Character:FindFirstChild("HumanoidRootPart") then
+		Camera.CFrame = CFrame.new(Camera.CFrame.Position,t.Character.HumanoidRootPart.Position)
 	end
 end
 
--- Toggle Aim Lock
-local function toggleAim()
-	aimLockEnabled = not aimLockEnabled
-	if aimTween then aimTween:Cancel() end
-	if aimLockEnabled then
-		targetPlayer = getClosestTarget()
-		Status.Text = "ON"
-		aimTween = TweenService:Create(StatusGradient, TweenInfo.new(1,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut,-1,true),{Rotation=360})
-		aimTween:Play()
-	else
-		targetPlayer = nil
-		Status.Text = "OFF"
-		Status.TextColor3 = Color3.fromRGB(180,240,255)
-	end
-end
-
-UserInputService.InputBegan:Connect(function(input,g)
-	if input.KeyCode == AimLockKey and not g then toggleAim() end
-	if input.KeyCode == ReopenKey and not guiVisible then
-		ScreenGui.Enabled = true
-		guiVisible = true
-		Blur.Enabled = true
-	end
-end)
-Status.MouseButton1Click:Connect(toggleAim)
-
--- ================= CAMERA SHAKE =================
+-- ===== SHAKE FUNCTION =====
 local function startShake()
 	if shaking then return end
 	shaking = true
 	local base = Camera.CFrame
 	shakeConnection = RunService.RenderStepped:Connect(function()
-		Camera.CFrame = base * CFrame.new(
-			math.random(-6,6)/40,
-			math.random(-6,6)/40,
-			0
-		)
+		Camera.CFrame = base * CFrame.new(math.random(-5,5)/50, math.random(-5,5)/50, 0)
 	end)
 end
 
 local function stopShake()
 	shaking = false
-	if shakeConnection then
-		shakeConnection:Disconnect()
-		shakeConnection = nil
-	end
+	if shakeConnection then shakeConnection:Disconnect() shakeConnection=nil end
 end
 
-Close.MouseButton1Click:Connect(function()
-	startShake()
-	Kill.Visible = true
-	TweenService:Create(prankText, TweenInfo.new(0.4), {TextTransparency=0}):Play()
-end)
+-- ===== GUI CREATION =====
+local function createGUI()
+	if GUI_ENABLED then return end
+	GUI_ENABLED = true
 
-Kill.MouseButton1Click:Connect(function()
-	stopShake()
-	aimLockEnabled = false
-	targetPlayer = nil
-	if aimTween then aimTween:Cancel() end
-	ScreenGui.Enabled = false
-	guiVisible = false
-	Blur.Enabled = false
-end)
+	local ScreenGui = Instance.new("ScreenGui",LP.PlayerGui)
+	ScreenGui.Name = "pamperLoveGUI"
+	ScreenGui.ResetOnSpawn = false
 
--- ================= ANIMATION LOOP =================
-local t=0
-RunService.RenderStepped:Connect(function(dt)
-	t+=dt*2
-	local hue=0.9+math.sin(t*1.6)*0.1
-	BorderGlow.Color=Color3.fromHSV(hue,0.75,1)
-	GlassGradient.Rotation=(t*60)%360
-	-- Animate Title and Status rainbow
-	local rainbowHue=(tick()*0.25)%1
-	Title.TextColor3=Color3.fromHSV(rainbowHue,1,1)
-	Status.TextColor3=Color3.fromHSV((rainbowHue+0.5)%1,0.9,1)
-	if aimLockEnabled and targetPlayer then
-		aimAtTarget(targetPlayer)
+	-- Main frame
+	local Main = Instance.new("Frame",ScreenGui)
+	Main.Size = UDim2.fromOffset(320,160)
+	Main.Position = UDim2.fromOffset(60,60)
+	Main.BackgroundColor3 = Color3.fromRGB(20,20,25)
+	Main.Active = true
+	Main.Draggable = true
+	Instance.new("UICorner",Main).CornerRadius = UDim.new(0,18)
+
+	-- Inner dynamic glass
+	local Glass = Instance.new("Frame",Main)
+	Glass.Size = UDim2.new(1,-16,1,-16)
+	Glass.Position = UDim2.fromOffset(8,8)
+	Glass.BackgroundTransparency = 0.05
+	Instance.new("UICorner",Glass).CornerRadius = UDim.new(0,16)
+
+	local GlassGrad = Instance.new("UIGradient",Glass)
+	GlassGrad.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(80,140,220)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(180,200,255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(220,170,255))
+	}
+	GlassGrad.Rotation = 0
+
+	-- Title - glass / emboss with stroke matching background
+	local Title = Instance.new("TextLabel",Main)
+	Title.Size = UDim2.new(1,0,0,36)
+	Title.Position = UDim2.fromOffset(0,0)
+	Title.BackgroundTransparency = 1
+	Title.Text = "pamperLove"
+	Title.Font = Enum.Font.GothamBold
+	Title.TextSize = 28
+	Title.TextColor3 = Color3.fromRGB(22,22,25) -- в тон фона
+	local Stroke = Instance.new("UIStroke",Title)
+	Stroke.Thickness = 1.5
+	Stroke.Transparency = 0
+	Stroke.Color = Color3.fromRGB(200,200,255)
+
+	-- ===== STATUS BAR =====
+	local Status = Instance.new("TextButton",Main)
+	Status.Size = UDim2.new(1,-40,0,36)
+	Status.Position = UDim2.fromOffset(20,100)
+	Status.Text = "OFF"
+	Status.Font = Enum.Font.GothamSemibold
+	Status.TextSize = 18
+	Status.TextColor3 = Color3.fromRGB(240,240,255)
+	Status.BackgroundColor3 = Color3.fromRGB(60,70,90)
+	Instance.new("UICorner",Status).CornerRadius = UDim.new(0,12)
+
+	-- Gradient inside status
+	local StatusGrad = Instance.new("UIGradient",Status)
+	StatusGrad.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(100,180,255)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(150,200,255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(90,180,240))
+	}
+	StatusGrad.Rotation = 0
+
+	-- Animated side squares
+	local function makeSquare(x)
+		local sq = Instance.new("Frame",Status)
+		sq.Size = UDim2.fromOffset(14,14)
+		sq.Position = UDim2.fromScale(x,0.5)
+		sq.AnchorPoint = Vector2.new(0.5,0.5)
+		sq.BackgroundTransparency = 0.1
+		Instance.new("UICorner",sq).CornerRadius = UDim.new(0,4)
+		local stroke = Instance.new("UIStroke",sq)
+		stroke.Thickness = 2
+		stroke.Transparency = 0.2
+		return sq, stroke
+	end
+
+	local SQ_L, SQS_L = makeSquare(0.06)
+	local SQ_R, SQS_R = makeSquare(0.94)
+
+	-- Troll top cross
+	local Close = Instance.new("TextButton",Main)
+	Close.Size = UDim2.fromOffset(30,30)
+	Close.Position = UDim2.new(1,-40,0,6)
+	Close.Text = "✖"
+	Close.Font = Enum.Font.GothamBlack
+	Close.TextSize = 20
+	Close.BackgroundColor3 = Color3.fromRGB(220,70,70)
+	Close.TextColor3 = Color3.new(1,1,1)
+	Instance.new("UICorner",Close).CornerRadius = UDim.new(0,8)
+
+	-- Kill bottom cross
+	local Kill = Instance.new("TextButton",Main)
+	Kill.Size = UDim2.fromOffset(34,34)
+	Kill.Position = UDim2.new(0,10,1,-46)
+	Kill.Text = "☠"
+	Kill.Font = Enum.Font.GothamBlack
+	Kill.TextSize = 20
+	Kill.BackgroundColor3 = Color3.fromRGB(180,60,60)
+	Kill.TextColor3 = Color3.new(1,1,1)
+	Kill.Visible = false
+	Instance.new("UICorner",Kill).CornerRadius = UDim.new(0,10)
+
+	-- Prank Text
+	local prankText = Instance.new("TextLabel",ScreenGui)
+	prankText.Size = UDim2.new(1,0,1,0)
+	prankText.BackgroundTransparency = 1
+	prankText.Text = "NYASHIX PRIME"
+	prankText.Font = Enum.Font.GothamBlack
+	prankText.TextSize = 80
+	prankText.TextColor3 = Color3.fromRGB(255,90,140)
+	prankText.TextTransparency = 1
+	prankText.ZIndex = 10
+
+	-- ===== LOGIC =====
+	local function toggleAim()
+		AIM_ENABLED = not AIM_ENABLED
+		Status.Text = AIM_ENABLED and "ON" or "OFF"
+		target = AIM_ENABLED and getClosest() or nil
+	end
+	Status.MouseButton1Click:Connect(toggleAim)
+	UIS.InputBegan:Connect(function(i,g)
+		if g then return end
+		if i.KeyCode == Enum.KeyCode.R then toggleAim() end
+	end)
+
+	Close.MouseButton1Click:Connect(function()
+		Kill.Visible = true
+		startShake()
+		TweenService:Create(prankText,TweenInfo.new(0.4),{TextTransparency=0}):Play()
+	end)
+
+	Kill.MouseButton1Click:Connect(function()
+		stopShake()
+		AIM_ENABLED=false
+		GUI_ENABLED=false
+		Main:Destroy()
+		prankText:Destroy()
+	end)
+
+	-- ===== RENDER =====
+	RunService.RenderStepped:Connect(function()
+		local t = tick()
+		GlassGrad.Rotation = (t*25)%360
+		local c = Color3.fromHSV((t*0.7)%1,0.9,1)
+		SQ_L.BackgroundColor3 = c
+		SQ_R.BackgroundColor3 = c
+		SQS_L.Color = c
+		SQS_R.Color = c
+
+		if AIM_ENABLED and target then aimAt(target) end
+	end)
+end
+
+-- ===== TOGGLE GUI =====
+UIS.InputBegan:Connect(function(i,g)
+	if g then return end
+	if i.KeyCode == Enum.KeyCode.Insert then
+		if GUI_ENABLED then
+			for _,v in pairs(LP.PlayerGui:GetChildren()) do
+				if v.Name=="pamperLoveGUI" then v:Destroy() end
+			end
+			AIM_ENABLED=false
+			GUI_ENABLED=false
+		else
+			createGUI()
+		end
 	end
 end)
+
+createGUI()
